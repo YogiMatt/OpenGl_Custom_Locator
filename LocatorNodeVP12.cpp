@@ -39,7 +39,7 @@ void LocatorNodeVP12::draw(M3dView& view, const MDagPath& path, M3dView::Display
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA);
 
-``	if (status == M3dView::kLead)
+if (status == M3dView::kLead)
 		glColor4d(0.0, 1.0, 0.0, 0.3);
 	else
 		glColor4d(1.0, 1.0, 0.0, 0.3);
@@ -115,13 +115,18 @@ void LocatorNodeVP12Override::addUIDrawables(const MDagPath& objPath, MHWRender:
 	drawManager.beginDrawable();
 	MHWRender::DisplayStatus displayStatus = MHWRender::MGeometryUtilities::displayStatus(objPath);
 	MColor color;
-	if(displayStatus == MHWRender::DisplayStatus::kLead){
+	if (displayStatus == MHWRender::DisplayStatus::kLead) {
 		color = MColor(0.0f, 1.0f, 0.3f);
-	}
-	else {
+	}else {
 		color = MColor(1.0f, 0.0f, 0.3f);
 	}
-	if (frameContext.getDisplayStyle() ==MHWRender::MFrameContext::kFlatShaded 
+	if ((frameContext.getDisplayStyle() & (MHWRender::MFrameContext::kFlatShaded | MHWRender::MFrameContext::kGouraudShaded | MHWRender::MFrameContext::kTextured)) != 0)
+	{
+		drawManager.setColor(color);
+		drawManager.setDepthPriority(MHWRender::MRenderItem::sDormantFilledDepthPriority);
+		drawManager.mesh(MUIDrawManager::kTriangles, points, nullptr, nullptr, &indices, nullptr);
+	}
 
-
+	drawManager.endDrawable();
+	
 }
