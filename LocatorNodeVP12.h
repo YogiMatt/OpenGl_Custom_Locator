@@ -6,6 +6,10 @@
 #include<maya/MPxDrawOverride.h>	
 #include<maya/MPoint.h>
 #include<maya/MUintArray.h>
+#include <maya/MBoundingBox.h>
+#include <maya/MFrameContext.h>
+#include <maya/MDagPath.h>
+
 
 class LocatorNodeVP12 : public MPxLocatorNode {
 	static MObject drawIt;
