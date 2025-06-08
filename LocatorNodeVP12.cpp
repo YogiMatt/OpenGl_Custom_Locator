@@ -1,4 +1,3 @@
-#pragma once
 
 #include <maya/MHWGeometry.h>
 #include<maya/MHWGeometryUtilities.h>
@@ -25,44 +24,57 @@ MBoundingBox LocatorNodeVP12::boundingBox()const{
 		MPoint(3.0, 1.5, 0.0));
 }
 
-void LocatorNodeVP12::draw(M3dView& view, const MDagPath& path, M3dView::DisplayStyle style, M3dView::DisplayStatus status) {
-	MPlug drawItP(thisMObject(), drawIt);
-	bool drawItV;
-	drawItP.getValue(drawItV);
-	if (!drawItV) return;
+void LocatorNodeVP12Override::addUIDrawables(
+	const MDagPath& objPath,
+	MHWRender::MUIDrawManager& drawManager,
+	const MHWRender::MFrameContext& frameContext,
+	const MUserData* userData)
+{
+	const UserData* castData = dynamic_cast<const UserData*>(userData);
+	if (!castData) {
+		return;
+	}
 
-	view.beginGL();
+	drawManager.beginDrawable();
 
-	glPushAttrib(GL_ALL_ATTRIB_BITS);
+	// Set alpha-blended color based on display status
+	MHWRender::DisplayStatus displayStatus = MHWRender::MGeometryUtilities::displayStatus(objPath);
+	MColor color = (displayStatus == MHWRender::kLead)
+		? MColor(0.0f, 1.0f, 0.0f, 0.3f)
+		: MColor(1.0f, 1.0f, 0.0f, 0.3f);
 
-	glEnable(GL_BLEND);
+	drawManager.setColor(color);
+	drawManager.setDepthPriority(MHWRender::MRenderItem::sDormantFilledDepthPriority);
 
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA);
+	MPointArray points;
+	MUintArray indices;
 
-if (status == M3dView::kLead)
-		glColor4d(0.0, 1.0, 0.0, 0.3);
-	else
-		glColor4d(1.0, 1.0, 0.0, 0.3);
+	// Triangle 1
+	points.append(MPoint(-2.0, 1.0, 0.0));
+	points.append(MPoint(-2.0, -1.0, 0.0));
+	points.append(MPoint(2.0, 1.0, 0.0));
+	indices.append(0); indices.append(1); indices.append(2);
 
-	glBegin(GL_TRIANGLES); //draw tris
-	glVertex3d(-2.0, 1.0, 0.0); //tri one
-	glVertex3d(-2.0, -1.0, 0.0);
-	glVertex3d(2.0, 1.0, 0.0);
+	// Triangle 2
+	points.append(MPoint(2.0, -1.0, 0.0));
+	indices.append(1); indices.append(3); indices.append(2);
 
-	glVertex3d(2.0, -1.0, 0.0); //tri two
-	glVertex3d(-2.0, -1.0, 0.0);
-	glVertex3d(2.0, -1.0, 0.0);
+	// Triangle 3
+	points.append(MPoint(2.0, -1.5, 0.0));
+	points.append(MPoint(2.0, 1.5, 0.0));
+	points.append(MPoint(3.0, 1.0, 0.0));
+	indices.append(4); indices.append(5); indices.append(6);
 
-	glVertex3d(2.0, -1.5, 0.0); //tri three
-	glVertex3d(2.0, 1.5, 0.0);
-	glVertex3d(3.0, 1.0, 0.0);
-	glEnd();
+	drawManager.mesh(MUIDrawManager::kTriangles, points, nullptr, nullptr, &indices, nullptr);
+
+	drawManager.endDrawable();
 }
+
 
 MObject LocatorNodeVP12::drawIt;
 MTypeId LocatorNodeVP12::typeId = 0x100;
 MString LocatorNodeVP12::drawDbClassification = "drawdb/geometry/LocatorNodeVP12";
-
+MString LocatorNodeVP12::drawDbName = "LocatorNodeVP12";
 
 LocatorNodeVP12Override::LocatorNodeVP12Override(const MObject& obj):
 	MHWRender::MPxDrawOverride(obj, LocatorNodeVP12Override::draw){ }
@@ -80,53 +92,21 @@ MHWRender::DrawAPI LocatorNodeVP12Override::supportedDrawAPIs() const {
 }
 bool LocatorNodeVP12Override::hasUIDrawables() const { return true; }
 
-MUserData* LocatorNodeVP12Override::prepareForDraw(const MDagPath& objPath, const MDagPath& cameraPath, const MHWRender::MFrameContext& frameContext, MUserData* userData) {
+MUserData* LocatorNodeVP12Override::prepareForDraw(
+	const MDagPath& objPath,
+	const MDagPath& cameraPath,
+	const MHWRender::MFrameContext& frameContext,
+	MUserData* userData)
+{
+	MSharedPtr<MUserData> baseData(userData);
+	UserData* castData = dynamic_cast<UserData*>(baseData.get());
 
-	UserData* castData = dynamic_cast<UserData*>(userData);
-	if (castData == nullptr) {
-		castData = new UserData;
+	if (!castData) {
+		castData = new UserData();
+		baseData = MSharedPtr<MUserData>(castData);
 	}
 
 	castData->path = objPath;
 
-	return castData;
-}
-
-void LocatorNodeVP12Override::addUIDrawables(const MDagPath& objPath, MHWRender::MUIDrawManager& drawManager, const MHWRender::MFrameContext& frameContext, const MUserData* userData) {
-	const UserData* castData = dynamic_cast<const UserData*>(userData);
-	if (castData == nullptr) {
-		return;
-	}
-
-	MPointArray points;
-	points.append(MPoint(-2.0, 1.0, 0.0));
-	points.append(MPoint(-2.0, -1.0, 0.0));
-	points.append(MPoint(2.0, 1.0, 0.0));
-	points.append(MPoint(-2.0, -1.0, 0.0));
-	points.append(MPoint(2.0, -1.5, 0.0));
-	points.append(MPoint(2.0, 1.5, 0.0));
-	points.append(MPoint(3.0, 1.0, 0.0));
-
-	MUintArray indices;
-	indices.append(0); indices.append(1); indices.append(2);
-	indices.append(1); indices.append(3); indices.append(2);
-	indices.append(4); indices.append(5); indices.append(6);
-
-	drawManager.beginDrawable();
-	MHWRender::DisplayStatus displayStatus = MHWRender::MGeometryUtilities::displayStatus(objPath);
-	MColor color;
-	if (displayStatus == MHWRender::DisplayStatus::kLead) {
-		color = MColor(0.0f, 1.0f, 0.3f);
-	}else {
-		color = MColor(1.0f, 0.0f, 0.3f);
-	}
-	if ((frameContext.getDisplayStyle() & (MHWRender::MFrameContext::kFlatShaded | MHWRender::MFrameContext::kGouraudShaded | MHWRender::MFrameContext::kTextured)) != 0)
-	{
-		drawManager.setColor(color);
-		drawManager.setDepthPriority(MHWRender::MRenderItem::sDormantFilledDepthPriority);
-		drawManager.mesh(MUIDrawManager::kTriangles, points, nullptr, nullptr, &indices, nullptr);
-	}
-
-	drawManager.endDrawable();
-	
+	return baseData.get();
 }
